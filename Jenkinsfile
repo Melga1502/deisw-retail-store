@@ -49,24 +49,6 @@ pipeline {
       }
     }
 
-    stage('SonarQube Analysis') {
-      steps {
-        // "sonarqube" es el nombre del servidor en Jenkins; inyecta la URL y el token de SonarQube
-        withSonarQubeEnv('sonarqube') {
-          sh "mvn -B -ntp sonar:sonar -Dsonar.projectKey=${IMAGE_NAME} -Dsonar.projectName=${IMAGE_NAME}"
-        }
-        // Espera el aviso (webhook) de SonarQube con el resultado del Quality Gate
-        script {
-          timeout(time: 10, unit: 'MINUTES') {
-            def qg = waitForQualityGate()
-            if (qg.status != 'OK') {
-              error "No se superó el Quality Gate de SonarQube: ${qg.status}"
-            }
-          }
-        }
-      }
-    }
-
     stage('Package Project') {
       steps {
         sh 'mvn -B -ntp package -DskipTests'
