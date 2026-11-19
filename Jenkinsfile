@@ -2,15 +2,16 @@ pipeline {
   // "any": que Jenkins use cualquier ejecutor disponible (aquí, el propio Jenkins)
   agent any
 
-  environment {
-    // Aquí no hay bloque "tools": el JDK 26 y Maven ya vienen dentro de la imagen de Jenkins.
-    // Se le indica a Maven qué Java usar apuntando JAVA_HOME al JDK 26.
-    JAVA_HOME = "${env.JAVA_HOME_26}"
-    PATH      = "${env.JAVA_HOME_26}/bin:${env.PATH}"
+  // Los nombres deben coincidir con Manage Jenkins > Tools
+  tools {
+    maven 'maven3'
+    jdk 'jdk26'
+  }
 
+  environment {
     // Nombre final de la imagen: usuario_dockerhub/retail-store-<codigo>:<tag>  (TODO EN MINÚSCULAS)
     REGISTRY_USER = 'melga135'                      // tu usuario de Docker Hub
-    CODIGO        = 'practica'                      // en el examen: tu código de estudiante, en minúsculas
+    CODIGO        = 'u202315165'                    // tu código de estudiante, en minúsculas
     IMAGE_NAME    = "retail-store-${CODIGO}"
     TAG           = "${env.BUILD_NUMBER}"           // el número de ejecución de Jenkins sirve de versión
   }
@@ -50,8 +51,8 @@ pipeline {
 
     stage('SonarQube Analysis') {
       steps {
-        // MiSonarServer es el nombre del servidor en Jenkins; inyecta la URL y el token de SonarQube
-        withSonarQubeEnv('MiSonarServer') {
+        // "sonarqube" es el nombre del servidor en Jenkins; inyecta la URL y el token de SonarQube
+        withSonarQubeEnv('sonarqube') {
           sh "mvn -B -ntp sonar:sonar -Dsonar.projectKey=${IMAGE_NAME} -Dsonar.projectName=${IMAGE_NAME}"
         }
         // Espera el aviso (webhook) de SonarQube con el resultado del Quality Gate
@@ -83,7 +84,7 @@ pipeline {
     stage('Push Docker Image') {
       steps {
         // La credencial vive en Jenkins; el pipeline nunca escribe la contraseña
-        withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_CREDENTIALS',
+        withCredentials([usernamePassword(credentialsId: 'dockerhub',
                                           usernameVariable: 'DOCKER_USER',
                                           passwordVariable: 'DOCKER_PASS')]) {
           sh '''
